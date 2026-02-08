@@ -28,20 +28,36 @@ class ApifyJobProvider:
     def fetch_linkedin_jobs(self, role: str, limit: int = 5) -> List[Dict]:
         if not self.client: return []
         try:
+            # Input schema for bebity/linkedin-jobs-scraper
             run_input = {
-                "queries": [role],
-                "limitPerQuery": limit,
+                "keywords": role,
+                "locationId": "92000000",  # Worldwide, can be changed to specific location
+                "dateSince": "past Month",
+                "salary": "all",
+                "jobType": "all",
+                "limit": limit
             }
-            run = self.client.actor(self.actors["linkedin"]).call(run_input=run_input)
+            # Use the actor ID from env or default to bebity
+            actor_id = self.actors.get("linkedin", "bebity/linkedin-jobs-scraper")
+            print(f"Calling LinkedIn Actor: {actor_id} with keywords={role}")
+            
+            run = self.client.actor(actor_id).call(run_input=run_input)
+            
+            if not run:
+                return []
+                
             jobs = []
+            # Iterate items from the dataset
             for item in self.client.dataset(run["defaultDatasetId"]).iterate_items():
+                # Bebity structure usually has 'uniqueId', 'title', 'companyName', 'location', 'jobUrl'
                 jobs.append({
-                    "id": item.get("id", item.get("url")),
-                    "title": item.get("title") or item.get("jobTitle"),
-                    "company": item.get("companyName") or item.get("company"),
+                    "id": item.get("uniqueId") or item.get("id") or item.get("job_id"),
+                    "title": item.get("title"),
+                    "company": item.get("companyName"),
                     "location": item.get("location"),
-                    "required_skills": item.get("skills", []),
-                    "url": item.get("url"),
+                    # Bebity might not return parsed skills list, so we default to empty or inferred from description later
+                    "required_skills": [], 
+                    "url": item.get("jobUrl") or item.get("url"),
                     "source": "LinkedIn"
                 })
             return jobs

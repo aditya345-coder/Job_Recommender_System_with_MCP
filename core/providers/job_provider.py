@@ -122,7 +122,13 @@ class JobProvider:
     def get_jobs_for_role(self, role: str) -> List[Dict]:
         if self.use_apify:
             print(f"Fetching real jobs for role: {role} using Apify...")
-            return self.apify_provider.get_jobs(role)
+            try:
+                jobs = self.apify_provider.get_jobs(role)
+                if jobs:
+                    return jobs
+                print(f"Apify returned no jobs for {role}, falling back to mock data...")
+            except Exception as e:
+                print(f"Apify fetch failed for {role}: {e}. Falling back to mock data...")
         
         print(f"Using mock jobs for role: {role}...")
         jobs = self.mock_jobs.get(role, [])
