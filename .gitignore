@@ -207,4 +207,9 @@ marimo/_lsp/
 __marimo__/
 
 # my own files to be ignored
-understanding.md
+Understanding/
+blueprint.md
+job_mcp_export1.md
+job_mcp_export2.md
+list_models.py
+test_gemini.py

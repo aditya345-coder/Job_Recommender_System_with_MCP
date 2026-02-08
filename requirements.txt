@@ -1,4 +1,9 @@
 streamlit
 pymupdf
 python-dotenv
+langchain
+langgraph
+openai
+langchain-google-genai
 apify-client
+huggingface-hub

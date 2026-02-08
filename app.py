@@ -1,81 +1,77 @@
-import streamlit as st
-from src.helper import extract_text_from_pdf, ask_openai
-from src.job_api import fetch_linkedin_jobs, fetch_naukri_jobs
+from dotenv import load_dotenv
+load_dotenv()
 
-st.set_page_config(page_title="Job Recommender", layout="wide")
-st.title("📄AI Job Recommender")
-st.markdown("Upload your resume and get job recommendations based on your skills and experience from LinkedIn and Naukri.")
+import streamlit as st
+import fitz
+from core.graph import ResumeGraph, ResumeState
+
+st.set_page_config(page_title="AI Job Intelligence", layout="wide")
+st.title("🤖 AI Job Intelligence & Resume Matching System")
+st.markdown("Upload your resume to get intelligent job matches with explainable AI.")
 
 uploaded_file = st.file_uploader("Upload your resume (PDF)", type=["pdf"])
 
 if uploaded_file:
-    with st.spinner("Extracting text from your resume..."):
-        resume_text = extract_text_from_pdf(uploaded_file)
+    # The pipeline handles ingestion internally
 
-    with st.spinner("Summarizing your resume..."):
-        summary = ask_openai(f"Summarize this resume highlighting the skills, edcucation, and experience: \n\n{resume_text}", max_tokens=500)
+    with st.spinner("Running intelligence pipeline..."):
+        graph = ResumeGraph()
+        initial_state = ResumeState(
+            uploaded_file=uploaded_file,
+            resume_text="",
+            skills=[],
+            roles=[],
+            jobs=[],
+            matches=[],
+            explanations=[],
+            error=None,
+        )
+        result = graph.invoke(initial_state)
 
-    
-    with st.spinner("Finding skill Gaps..."):
-        gaps = ask_openai(f"Analyze this resume and highlight missing skills, certifications, and experiences needed for better job opportunities: \n\n{resume_text}", max_tokens=400)
-
-
-    with st.spinner("Creating Future Roadmap..."):
-        roadmap = ask_openai(f"Based on this resume, suggest a future roadmap to improve this person's career prospects (Skill to learn, certification needed, industry exposure): \n\n{resume_text}", max_tokens=400)
-    
-    # Display nicely formatted results
-    st.markdown("---")
-    st.header("📑 Resume Summary")
-    st.markdown(f"<div style='background-color: #000000; padding: 15px; border-radius: 10px; font-size:16px; color:white;'>{summary}</div>", unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.header("🛠️ Skill Gaps & Missing Areas")
-    st.markdown(f"<div style='background-color: #000000; padding: 15px; border-radius: 10px; font-size:16px; color:white;'>{gaps}</div>", unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.header("🚀 Future Roadmap & Preparation Strategy")
-    st.markdown(f"<div style='background-color: #000000; padding: 15px; border-radius: 10px; font-size:16px; color:white;'>{roadmap}</div>", unsafe_allow_html=True)
-
-    st.success("✅ Analysis Completed Successfully!")
-
-
-    if st.button("🔎Get Job Recommendations"):
-        with st.spinner("Fetching job recommendations..."):
-            keywords = ask_openai(
-                f"Based on this resume summary, suggest the best job titles and keywords for searching jobs. Give a comma-separated list only, no explanation.\n\nSummary: {summary}",
-                max_tokens=100
-            )
-
-            search_keywords_clean = keywords.replace("\n", "").strip()
-
-        st.success(f"Extracted Job Keywords: {search_keywords_clean}")
-
-        with st.spinner("Fetching jobs from LinkedIn and Naukri..."):
-            linkedin_jobs = fetch_linkedin_jobs(search_keywords_clean, rows=60)
-            naukri_jobs = fetch_naukri_jobs(search_keywords_clean, rows=60)
-
+    if result.get("error"):
+        st.error(f"Error: {result['error']}")
+    else:
+        st.markdown("---")
+        st.header("🔍 Extracted Skills")
+        st.write(", ".join(result.get("skills", [])))
 
         st.markdown("---")
-        st.header("💼 Top LinkedIn Jobs")
-
-        if linkedin_jobs:
-            for job in linkedin_jobs:
-                st.markdown(f"**{job.get('title')}** at *{job.get('companyName')}*")
-                st.markdown(f"- 📍 {job.get('location')}")
-                st.markdown(f"- 🔗 [View Job]({job.get('link')})")
-                st.markdown("---")
-        else:
-            st.warning("No LinkedIn jobs found.")
+        st.header("🎯 Inferred Target Roles")
+        st.write(", ".join(result.get("roles", [])))
 
         st.markdown("---")
-        st.header("💼 Top Naukri Jobs (India)")
+        st.header("💼 Top Job Matches")
 
-        if naukri_jobs:
-            for job in naukri_jobs:
-                st.markdown(f"**{job.get('title')}** at *{job.get('companyName')}*")
-                st.markdown(f"- 📍 {job.get('location')}")
-                st.markdown(f"- 🔗 [View Job]({job.get('url')})")
+        matches = result.get("matches", [])
+        explanations = result.get("explanations", [])
+
+        if matches:
+            for i, match in enumerate(matches):
+                st.markdown(f"### {match['title']} at {match['company']}")
+                st.markdown(f"**Location:** {match['location']}")
+                st.markdown(f"**Match Score:** {match['match_score']:.2%}")
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**✅ Matched Skills:**")
+                    st.write(
+                        ", ".join(match["matched_skills"])
+                        if match["matched_skills"]
+                        else "None"
+                    )
+
+                with col2:
+                    st.markdown("**❌ Missing Skills:**")
+                    st.write(
+                        ", ".join(match["missing_skills"])
+                        if match["missing_skills"]
+                        else "None"
+                    )
+
+                if i < len(explanations):
+                    st.markdown("**📝 Explanation:**")
+                    st.markdown(explanations[i].get("explanation", ""))
+
                 st.markdown("---")
         else:
-            st.warning("No Naukri jobs found.")
-
+            st.warning("No matching jobs found.")
