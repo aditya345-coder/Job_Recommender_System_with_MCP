@@ -1,17 +1,3 @@
-Here is a professional, clean, and **easy-to-understand** `README.md` for your project.
-
-I have written this specifically to appeal to recruiters—it highlights **what** the project does and **why** your engineering choices (like LangGraph and Fallback LLMs) are smart, without using overly complex jargon.
-
-***
-
-### Instructions
-1.  Create a file named `README.md` in your main folder.
-2.  Paste the code below into it.
-3.  **Important:** Take a screenshot of your Streamlit app running, name it `demo.png`, create a folder named `images`, and put the picture there.
-
-***
-
-```markdown
 # 🤖 AI Job Intelligence & Resume Matching System
 
 **A smart career assistant that doesn't just "search" for jobs—it understands your resume, finds the perfect roles, and explains *why* you are a match.**
