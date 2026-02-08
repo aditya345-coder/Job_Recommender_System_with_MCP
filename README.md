@@ -102,3 +102,7 @@ python mcp_server.py
 
 ## 📸 Demo
 
+
+https://github.com/user-attachments/assets/2aacdf7a-dcf2-43e4-9e76-d734feba72c2
+
+
